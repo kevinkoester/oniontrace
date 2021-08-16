@@ -17,6 +17,8 @@ from numpy import min, max, median, mean, std
 from oniontracetools._version import __version__
 import oniontracetools.util as util
 
+from collections import defaultdict
+
 class Analysis(object):
 
     def __init__(self, nickname=None, ip_address=None):
@@ -240,6 +242,7 @@ class OnionTraceParser(Parser):
         self.bandwidth_summary = {'bytes_read_total': 0, 'bytes_written_total': 0}
         self.circuit = {'build_time': {}, 'fail_time': {}}
         self.circuit_summary = {'circuits_built_total': 0, 'circuits_failed_total': 0}
+        self.circuit_events = {"built": defaultdict(list), "closed": defaultdict(list)}
         self.name = None
         self.date_filter = date_filter
         self.version_mismatch = False
@@ -362,6 +365,14 @@ class OnionTraceParser(Parser):
                         self.circuit['fail_time'].setdefault(second, [])
                         self.circuit['fail_time'][second].append(cbt)
                         self.circuit_summary['circuits_failed_total'] += 1
+            parts = line.strip().split()
+            second = int(float(parts[2]))
+            circ_id = int(parts[8])
+            state = parts[9]
+            if "BUILT" in state:
+                self.circuit_events["built"][second].append(circ_id)
+            elif "CLOSED" in state:
+                self.circuit_events["closed"][second].append(circ_id)
 
         return True
 
@@ -436,6 +447,7 @@ class OnionTraceParser(Parser):
             'bandwidth_summary': self.bandwidth_summary if have_bw else None,
             'circuit': self.circuit if have_cbt else None,
             'circuit_summary': self.circuit_summary if have_cbt else None,
+            'circuit_events': self.circuit_events
         }
 
     def get_name(self):
