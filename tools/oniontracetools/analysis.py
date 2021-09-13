@@ -244,6 +244,8 @@ class OnionTraceParser(Parser):
         self.circuit_summary = {'circuits_built_total': 0, 'circuits_failed_total': 0}
         self.circuit_events = {"built": defaultdict(list), "closed": defaultdict(list)}
         self.circuit_relay_dict = {}
+        # [cid][time] = bw
+        self.circuit_bandwith = defaultdict(dict)
         self.name = None
         self.date_filter = date_filter
         self.version_mismatch = False
@@ -376,6 +378,18 @@ class OnionTraceParser(Parser):
                 self.circuit_relay_dict[circ_id] = circuit_relays.split(",")
             elif "CLOSED" in state:
                 self.circuit_events["closed"][second].append(circ_id)
+        elif self.boot_succeeded and re.search("Logger:\s650\sCIRC_BW\s", line) is not None:
+            parts = line.strip().split()
+            data_begin = 6
+            second = int(float(parts[2]))
+            data_dict = {}
+            for part in parts[data_begin:]:
+                if len(part.split("=")) == 2:
+                    data_dict[part.split("=")[0]] = part.split("=")[1]
+            cid = int(data_dict["ID"])
+            del data_dict["ID"]
+            del data_dict["TIME"]
+            self.circuit_bandwith[cid][second] = data_dict
 
         return True
 
@@ -451,7 +465,8 @@ class OnionTraceParser(Parser):
             'circuit': self.circuit if have_cbt else None,
             'circuit_summary': self.circuit_summary if have_cbt else None,
             'circuit_events': self.circuit_events,
-            'circuit_relay_dict': self.circuit_relay_dict
+            'circuit_relay_dict': self.circuit_relay_dict,
+            'circuit_bandwith': self.circuit_bandwith
         }
 
     def get_name(self):
