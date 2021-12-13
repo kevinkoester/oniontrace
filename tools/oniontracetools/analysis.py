@@ -245,7 +245,7 @@ class OnionTraceParser(Parser):
         self.circuit_events = {"built": defaultdict(list), "closed": defaultdict(list)}
         self.circuit_relay_dict = {}
         # [cid][time] = bw
-        self.circuit_bandwith = defaultdict(dict)
+        self.circuit_bandwidth = defaultdict(dict)
         self.name = None
         self.date_filter = date_filter
         self.version_mismatch = False
@@ -389,7 +389,7 @@ class OnionTraceParser(Parser):
             cid = int(data_dict["ID"])
             del data_dict["ID"]
             del data_dict["TIME"]
-            self.circuit_bandwith[cid][second] = data_dict
+            self.circuit_bandwidth[cid][second] = data_dict
 
         return True
 
@@ -466,7 +466,7 @@ class OnionTraceParser(Parser):
             'circuit_summary': self.circuit_summary if have_cbt else None,
             'circuit_events': self.circuit_events,
             'circuit_relay_dict': self.circuit_relay_dict,
-            'circuit_bandwith': self.circuit_bandwith
+            'circuit_bandwidth': self.circuit_bandwidth
         }
 
     def get_name(self):
