@@ -243,7 +243,10 @@ class OnionTraceParser(Parser):
         self.circuit = {'build_time': {}, 'fail_time': {}}
         self.circuit_summary = {'circuits_built_total': 0, 'circuits_failed_total': 0}
         self.circuit_events = {"built": defaultdict(list), "closed": defaultdict(list)}
+        self.stream_events = {"new": defaultdict(list), "closed": defaultdict(list)}
         self.circuit_relay_dict = {}
+        #self.stream_circ_dict = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+        self.stream_circ_dict = {}
         # [cid][time] = bw
         self.circuit_bandwidth = defaultdict(dict)
         self.name = None
@@ -390,6 +393,23 @@ class OnionTraceParser(Parser):
             del data_dict["ID"]
             del data_dict["TIME"]
             self.circuit_bandwidth[cid][second] = data_dict
+        elif self.boot_succeeded and re.search("Logger:\s650\sSTREAM\s", line) is not None:
+            parts = line.strip().split()
+            second = int(float(parts[2]))
+            stream_id = int(parts[8])
+            state = parts[9]
+            cid = int(parts[10])
+            if "NEW" in state or "CLOSED" in state:
+                self.stream_events[state.lower()][second].append(stream_id)
+                second = second - 946684800
+                if cid != 0:
+                    if cid not in self.stream_circ_dict:
+                        self.stream_circ_dict[cid] = {}
+                    if state not in self.stream_circ_dict[cid]:
+                        self.stream_circ_dict[cid][state] = {}
+                    if second not in self.stream_circ_dict[cid][state]:
+                        self.stream_circ_dict[cid][state][second] = []
+                    self.stream_circ_dict[cid][state][second].append(stream_id)
 
         return True
 
@@ -465,6 +485,8 @@ class OnionTraceParser(Parser):
             'circuit': self.circuit if have_cbt else None,
             'circuit_summary': self.circuit_summary if have_cbt else None,
             'circuit_events': self.circuit_events,
+            'stream_events': self.stream_events,
+            'stream_circ_dict': self.stream_circ_dict,
             'circuit_relay_dict': self.circuit_relay_dict,
             'circuit_bandwidth': self.circuit_bandwidth
         }

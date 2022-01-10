@@ -222,7 +222,7 @@ class FileWritable(Writable):
 
     def __open_nolock(self):
         if self.do_compress:
-            self.xzproc = Popen("xz --threads=3 -".split(), stdin=PIPE, stdout=PIPE)
+            self.xzproc = Popen("xz --threads=0 -".split(), stdin=PIPE, stdout=PIPE)
             dd_cmd = "dd of={0}".format(self.filename)
             # # note: its probably not a good idea to append to finalized compressed files
             # if not self.do_truncate: dd_cmd += " oflag=append conv=notrunc"
